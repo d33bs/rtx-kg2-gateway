@@ -162,5 +162,5 @@ cython_debug/
 # data ignores
 
 src/notebooks/data/*.json
-!src/notebooks/data/*.sample.json
+!src/notebooks/data/*.sample*.json
 src/notebooks/data/*.json.gz
