@@ -47,6 +47,7 @@ json_schema_init = {
 
 # -
 
+
 def download_file(url, download_dir):
     # referenced with modification from:
     # https://stackoverflow.com/a/16696317
