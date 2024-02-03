@@ -1,0 +1,46 @@
+{
+  "nodes": [
+    {
+      "id": "biolink_download_source:biolink-model.owl.ttl",
+      "name": "Biolink meta-model version downloaded:2023-07-20 21:19:46 GMT",
+      "all_categories": [
+        "biolink:RetrievalSource"
+      ],
+      "category": "biolink:RetrievalSource"
+    },
+    {
+      "id": "biolink:overlaps",
+      "name": "overlaps",
+      "all_categories": [
+        "biolink:InformationContentEntity"
+      ],
+      "category": "biolink:InformationContentEntity"
+    }
+  ],
+  "edges": [
+    {
+      "qualified_object_aspect": "",
+      "predicate": "biolink:subclass_of",
+      "domain_range_exclusion": "False",
+      "object": "biolink:overlaps",
+      "qualified_object_direction": "",
+      "id": 1,
+      "primary_knowledge_source": "infores:biolink-ontology",
+      "subject": "FMA:has_part",
+      "qualified_predicate": ""
+    },
+    {
+      "qualified_object_aspect": "",
+      "predicate": "biolink:subclass_of",
+      "domain_range_exclusion": "False",
+      "object": "biolink:overlaps",
+      "qualified_object_direction": "",
+      "id": 2,
+      "primary_knowledge_source": "infores:biolink-ontology",
+      "subject": "UMLS:C1292711",
+      "qualified_predicate": ""
+    }
+  ],
+  "kg2_version": "2.8.4",
+  "biolink_version": "3.1.2"
+}

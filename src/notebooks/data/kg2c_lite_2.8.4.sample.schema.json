@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "$id": "https://github.com/CU-DBMI/rtx-kg2-gateway/src/notebooks/data/kg2c_lite_2.8.4.schema.json",
+  "description": "Inferred JSON Schema from subset of RTX-KG2 JSON data for documenting data provenance.",
+  "type": "object",
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "all_categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "category": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "all_categories",
+          "category",
+          "id",
+          "name"
+        ]
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "qualified_object_aspect": {
+            "type": "string"
+          },
+          "predicate": {
+            "type": "string"
+          },
+          "domain_range_exclusion": {
+            "type": "string"
+          },
+          "object": {
+            "type": "string"
+          },
+          "qualified_object_direction": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "primary_knowledge_source": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "qualified_predicate": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "domain_range_exclusion",
+          "id",
+          "object",
+          "predicate",
+          "primary_knowledge_source",
+          "qualified_object_aspect",
+          "qualified_object_direction",
+          "qualified_predicate",
+          "subject"
+        ]
+      }
+    },
+    "kg2_version": {
+      "type": "string"
+    },
+    "biolink_version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "biolink_version",
+    "edges",
+    "kg2_version",
+    "nodes"
+  ]
+}
