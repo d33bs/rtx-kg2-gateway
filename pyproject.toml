@@ -25,31 +25,16 @@ jupyterlab = "^4.0.0"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-# defines a workflow for preparing data associated with this collaboration
-[tool.poe.tasks.data_prep]
-# sets a cwd relative for the shell script below
-cwd = "src/notebooks"
-# shell command below runs dvc pull to update data and runs python script
-shell = """
-  dvc pull &&
-  python data_prep.cytotable_convert.py
-"""
-
 [tool.jupytext]
 formats = "ipynb,py:light"
 
 [tool.vulture]
 min_confidence = 80
-paths = ["notebooks"]
+paths = ["src/notebooks"]
 sort_by_size = true
 verbose = true
 
 [tool.isort]
 profile = "black"
-
-[tool.codespell]
-# add capabilities for inline ignore for codespell linting
-# referenced from: https://github.com/codespell-project/codespell/issues/1212
-ignore-regex=".{1024}|.*codespell-ignore.*"
 
 [tool.setuptools_scm]
