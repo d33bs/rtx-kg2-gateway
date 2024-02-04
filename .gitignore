@@ -164,3 +164,4 @@ cython_debug/
 src/notebooks/data/*.json
 !src/notebooks/data/*.sample*.json
 src/notebooks/data/*.json.gz
+src/notebooks/data/kg2c_lite_2.8.4.sample.dataset.kuzu

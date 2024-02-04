@@ -23,8 +23,10 @@ from typing import Any, Dict, Generator, List
 
 import awkward as ak
 import ijson
+import pyarrow as pa
 import requests
 from genson import SchemaBuilder
+from pyarrow import parquet
 from rtx_kg2_functions import (
     count_items_under_top_level_name,
     find_top_level_names,
@@ -88,10 +90,15 @@ sample_items_dict = {}
 for top_level_name in [
     name for name in top_level_names if name not in metadata_top_level_names
 ]:
-    pathlib.Path(f"{parquet_dir}/{top_level_name}").mkdir(exist_ok=True)
+    dataset_path = f"{parquet_dir}/{top_level_name}"
+    pathlib.Path(dataset_path).mkdir(exist_ok=True)
     items = parse_items_by_topmost_item_name(
-        target_extracted_sample_data, top_level_name, chunk_size, 1
+        target_extracted_sample_data, top_level_name, chunk_size, 0
     )
-    for value in items:
-        val = ak.to_arrow(ak.Array(list(value))).replace_schema_metadata(metadata_dict)
-val
+    for idx, value in enumerate(items):
+        parquet.write_table(
+            table=pa.Table.from_pylist(list(value)).replace_schema_metadata(
+                metadata_dict
+            ),
+            where=f"{dataset_path}/{top_level_name}.{idx}.parquet",
+        )
