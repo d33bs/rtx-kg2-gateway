@@ -36,7 +36,7 @@ from rtx_kg2_functions import (
 # -
 
 # set data to be used throughout notebook
-chunk_size = 10000
+chunk_size = 100000
 data_dir = "data"
 parquet_dir = f"{data_dir}/"
 source_data_url = "https://github.com/ncats/translator-lfs-artifacts/raw/main/files/kg2c_lite_2.8.4.json.gz"
@@ -101,7 +101,7 @@ for top_level_name in [
     dataset_path = f"{parquet_dir}/{top_level_name}"
     pathlib.Path(dataset_path).mkdir(exist_ok=True)
     items = parse_items_by_topmost_item_name(
-        target_extracted_sample_data, top_level_name, chunk_size, 1
+        target_extracted_data, top_level_name, chunk_size, 1
     )
     for idx, value in enumerate(items):
         if top_level_name == "nodes":
@@ -126,3 +126,6 @@ for top_level_name in [
                 table=table.replace_schema_metadata(metadata_dict),
                 where=f"{dataset_path}/{top_level_name}.{idx}.parquet",
             )
+# -
+
+
