@@ -21,9 +21,10 @@ import gzip
 import json
 import pathlib
 import shutil
-from typing import Any, Dict, Generator, List
+from typing import Any, Dict, Generator, List, Literal
 
 import ijson
+import kuzu
 import requests
 from genson import SchemaBuilder
 
@@ -106,3 +107,77 @@ def parse_metadata_by_object_name(
 
     with open(json_file, "r") as f:
         return next(ijson.items(f, metadata_object_name))
+
+
+def generate_cypher_table_create_stmt_from_parquet_file(
+    parquet_file: str,
+    table_type: Literal["node", "rel"],
+    table_name: str,
+    table_pkey_parquet_field_name: str = "id",
+    rel_table_field_mapping: Dict[str, str] = {"from": "nodes", "to": "nodes"},
+    # specify a map for from to specification
+    # to move these to first two cols of related table
+    edges_to_or_from_fieldnames: List[str] = ["subject", "object"],
+):
+
+    parquet_schema = parquet.read_schema(parquet_file)
+
+    if table_pkey_parquet_field_name not in [field.name for field in parquet_schema]:
+        raise LookupError(
+            f"Unable to find field {table_pkey_parquet_field_name} in parquet file {parquet_file}."
+        )
+
+    # Map Parquet data types to Cypher data types
+    # more details here: https://kuzudb.com/docusaurus/cypher/data-types/
+    parquet_to_cypher_type_mapping = {
+        "string": "STRING",
+        "int32": "INT32",
+        "int64": "INT64",
+        "number": "FLOAT",
+        "float": "FLOAT",
+        "double": "FLOAT",
+        "boolean": "BOOLEAN",
+        "object": "MAP",
+        "array": "INT64[]",
+        "list<element: string>": "STRING[]",
+        "null": "NULL",
+        "date": "DATE",
+        "time": "TIME",
+        "datetime": "DATETIME",
+        "timestamp": "DATETIME",
+        "any": "ANY",
+    }
+
+    # Generate Cypher field type statements
+    cypher_fields_from_parquet_schema = ", ".join(
+        [
+            # note: we use string splitting here for nested types
+            # for ex. list<element: string>
+            f"{field.name} {parquet_to_cypher_type_mapping.get(str(field.type))}"
+            for idx, field in enumerate(parquet_schema)
+            if table_type == "node" or (table_type == "rel" and idx > 1)
+        ]
+    )
+
+    # branch for creating node table
+    if table_type == "node":
+        return (
+            f"CREATE NODE TABLE {table_name}"
+            f"({cypher_fields_from_parquet_schema}, "
+            f"PRIMARY KEY ({table_pkey_parquet_field_name}))"
+        )
+
+    # else we return for rel tables
+    return (
+        f"CREATE REL TABLE {table_name}"
+        f"(FROM {rel_table_field_mapping['from']} TO {rel_table_field_mapping['to']}, "
+        f"{cypher_fields_from_parquet_schema})"
+    )
+
+
+def drop_table_if_exists(kz_conn: kuzu.connection.Connection, table_name: str):
+    try:
+        kz_conn.execute(f"DROP TABLE {table_name}")
+    except Exception as e:
+        print(e)
+        print("Warning: no need to drop table.")
