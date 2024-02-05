@@ -85,7 +85,13 @@ metadata_dict = dict(
 )
 metadata_dict
 
+# +
 # build a sample of data using limited number of items
+
+# specify a map for from to specification
+# to move these to first two cols of related table
+edges_from_to_map = {"from": "subject", "to": "object"}
+
 sample_items_dict = {}
 for top_level_name in [
     name for name in top_level_names if name not in metadata_top_level_names
@@ -96,9 +102,25 @@ for top_level_name in [
         target_extracted_sample_data, top_level_name, chunk_size, 0
     )
     for idx, value in enumerate(items):
-        parquet.write_table(
-            table=pa.Table.from_pylist(list(value)).replace_schema_metadata(
-                metadata_dict
-            ),
-            where=f"{dataset_path}/{top_level_name}.{idx}.parquet",
-        )
+        if top_level_name == "nodes":
+            parquet.write_table(
+                table=pa.Table.from_pylist(list(value)).replace_schema_metadata(
+                    metadata_dict
+                ),
+                where=f"{dataset_path}/{top_level_name}.{idx}.parquet",
+            )
+        elif top_level_name == "edges":
+            table = pa.Table.from_pylist(list(value))
+            table = table.select(
+                [edges_from_to_map["from"], edges_from_to_map["to"]]
+                + [
+                    name
+                    for name in table.schema.names
+                    if name not in edges_from_to_map.values()
+                ]
+            )
+
+            parquet.write_table(
+                table=table.replace_schema_metadata(metadata_dict),
+                where=f"{dataset_path}/{top_level_name}.{idx}.parquet",
+            )
