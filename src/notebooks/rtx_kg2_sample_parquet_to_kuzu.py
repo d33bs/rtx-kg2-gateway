@@ -51,11 +51,14 @@ print(f"Kuzu dir: {kuzu_dir}")
 
 
 # create path for the kuzu database to reside
+shutil.rmtree(kuzu_dir)
 pathlib.Path(kuzu_dir).mkdir(exist_ok=True)
 
 # init a Kuzu database and connection
 db = kuzu.Database(f"{kuzu_dir}")
 kz_conn = kuzu.Connection(db)
+
+type(kz_conn)
 
 
 def generate_cypher_table_create_stmt_from_parquet_file(
@@ -63,7 +66,7 @@ def generate_cypher_table_create_stmt_from_parquet_file(
     table_type: Literal["node", "rel"],
     table_name: str,
     table_pkey_parquet_field_name: str = "id",
-    rel_table_field_mapping: Dict[str, str] = {"from": "Node", "to": "Node"},
+    rel_table_field_mapping: Dict[str, str] = {"from": "Nodes", "to": "Nodes"},
 ):
 
     parquet_schema = parquet.read_schema(parquet_file)
@@ -76,8 +79,8 @@ def generate_cypher_table_create_stmt_from_parquet_file(
     # Map Parquet data types to Cypher data types
     parquet_to_cypher_type_mapping = {
         "string": "STRING",
-        "int32": "INTEGER",
-        "int64": "INTEGER",
+        "int32": "INT32",
+        "int64": "INT64",
         "number": "FLOAT",
         "float": "FLOAT",
         "double": "FLOAT",
@@ -119,27 +122,41 @@ def generate_cypher_table_create_stmt_from_parquet_file(
     )
 
 
+def drop_table_if_exists(kz_conn: kuzu.connection.Connection, table_name: str):
+    try:
+        kz_conn.execute(f"DROP TABLE {table_name}")
+    except Exception as e:
+        print(e)
+        print("Warning: no need to drop table.")
+
+
+# +
+drop_table_if_exists(kz_conn=kz_conn, table_name="Relationships")
+drop_table_if_exists(kz_conn=kz_conn, table_name="Nodes")
+
+
 for path in pathlib.Path(parquet_dir).glob("*"):
 
+    # use first file discovered as basis for schema
     first_pq_file = next(pathlib.Path(path).glob("*.parquet"))
 
     if first_pq_file.parent.name == "nodes":
-        kz_conn.execute(
-            generate_cypher_table_create_stmt_from_parquet_file(
-                parquet_file=first_pq_file,
-                table_type="node",
-                table_name="Nodes",
-                table_pkey_parquet_field_name="id",
-            )
+
+        create_stmt = generate_cypher_table_create_stmt_from_parquet_file(
+            parquet_file=first_pq_file,
+            table_type="node",
+            table_name="Nodes",
+            table_pkey_parquet_field_name="id",
         )
+
     elif first_pq_file.parent.name == "edges":
-        kz_conn.execute(
-            generate_cypher_table_create_stmt_from_parquet_file(
-                parquet_file=first_pq_file,
-                table_type="rel",
-                table_name="Rel",
-                table_pkey_parquet_field_name="id",
-            )
+
+        create_stmt = generate_cypher_table_create_stmt_from_parquet_file(
+            parquet_file=first_pq_file,
+            table_type="rel",
+            table_name="Relationships",
+            table_pkey_parquet_field_name="id",
         )
 
-
+    print(f"Using the following create statement to create table:\n\n{create_stmt}\n\n")
+    kz_conn.execute(create_stmt)
