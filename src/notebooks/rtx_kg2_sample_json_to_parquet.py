@@ -12,7 +12,7 @@
 #     name: python3
 # ---
 
-# # Generate RTX-KG2 Data Sample and Schema
+# # Generate RTX-KG2 Sample JSON to Parquet
 
 # +
 import gzip

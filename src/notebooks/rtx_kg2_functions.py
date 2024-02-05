@@ -12,7 +12,9 @@
 #     name: python3
 # ---
 
-# # Generate RTX-KG2 Data Sample and Schema
+# # RTX-KG2 Functions
+#
+# Convenience notebook for using functions from a single location.
 
 # +
 import gzip

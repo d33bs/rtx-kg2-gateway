@@ -12,14 +12,14 @@
 #     name: python3
 # ---
 
-# # Generate RTX-KG2 Data Sample and Schema
+# # Generate RTX-KG2 Sample Parquet to Kuzu
 
 # +
 import gzip
 import json
 import pathlib
 import shutil
-from typing import Any, Dict, Generator, List
+from typing import Any, Dict, Generator, List, Literal
 
 import awkward as ak
 import ijson
@@ -47,31 +47,99 @@ kuzu_dir = target_extracted_sample_data.replace(".json", ".dataset.kuzu")
 target_extracted_sample_data_schema_file = target_extracted_sample_data.replace(
     ".json", ".schema.json"
 )
+print(f"Kuzu dir: {kuzu_dir}")
 
 
+# create path for the kuzu database to reside
 pathlib.Path(kuzu_dir).mkdir(exist_ok=True)
 
+# init a Kuzu database and connection
 db = kuzu.Database(f"{kuzu_dir}")
-conn = kuzu.Connection(db)
+kz_conn = kuzu.Connection(db)
 
 
-def generate_cypher_table_create_stmt_from_parquet_file(parquet_file: str):
+def generate_cypher_table_create_stmt_from_parquet_file(
+    parquet_file: str,
+    table_type: Literal["node", "rel"],
+    table_name: str,
+    table_pkey_parquet_field_name: str = "id",
+    rel_table_field_mapping: Dict[str, str] = {"from": "Node", "to": "Node"},
+):
+
     parquet_schema = parquet.read_schema(parquet_file)
 
+    if table_pkey_parquet_field_name not in [field.name for field in parquet_schema]:
+        raise LookupError(
+            f"Unable to find field {table_pkey_parquet_field_name} in parquet file {parquet_file}."
+        )
+
     # Map Parquet data types to Cypher data types
-    cypher_type_mapping = {
-        "STRING": "String",
-        "INT32": "Integer",
-        "INT64": "Integer",
-        "FLOAT": "Float",
-        "DOUBLE": "Float",
+    parquet_to_cypher_type_mapping = {
+        "string": "STRING",
+        "int32": "INTEGER",
+        "int64": "INTEGER",
+        "number": "FLOAT",
+        "float": "FLOAT",
+        "double": "FLOAT",
+        "boolean": "BOOLEAN",
+        "object": "MAP",
+        "array": "LIST",
+        "list<element: string>": "INT64[]",
+        "null": "NULL",
+        "date": "DATE",
+        "time": "TIME",
+        "datetime": "DATETIME",
+        "timestamp": "DATETIME",
+        "any": "ANY",
     }
 
-    # Generate Cypher statements
-    create_statements = []
-    for field in parquet_schema:
-        cypher_type = cypher_type_mapping.get(field.type.to_pandas_dtype().name)
-        if cypher_type:
-            create_statements.append(f"{field.name}: {cypher_type} }")
+    # Generate Cypher field type statements
+    cypher_fields_from_parquet_schema = ", ".join(
+        [
+            # note: we use string splitting here for nested types
+            # for ex. list<element: string>
+            f"{field.name} {parquet_to_cypher_type_mapping.get(str(field.type))}"
+            for field in parquet_schema
+        ]
+    )
+
+    # branch for creating node table
+    if table_type == "node":
+        return (
+            f"CREATE NODE TABLE {table_name}"
+            f"({cypher_fields_from_parquet_schema}, "
+            f"PRIMARY KEY ({table_pkey_parquet_field_name}))"
+        )
+
+    # else we return for rel tables
+    return (
+        f"CREATE REL TABLE {table_name}"
+        f"(FROM {rel_table_field_mapping['from']} TO {rel_table_field_mapping['to']}, "
+        f"{cypher_fields_from_parquet_schema})"
+    )
+
+
+for path in pathlib.Path(parquet_dir).glob("*"):
+
+    first_pq_file = next(pathlib.Path(path).glob("*.parquet"))
+
+    if first_pq_file.parent.name == "nodes":
+        kz_conn.execute(
+            generate_cypher_table_create_stmt_from_parquet_file(
+                parquet_file=first_pq_file,
+                table_type="node",
+                table_name="Nodes",
+                table_pkey_parquet_field_name="id",
+            )
+        )
+    elif first_pq_file.parent.name == "edges":
+        kz_conn.execute(
+            generate_cypher_table_create_stmt_from_parquet_file(
+                parquet_file=first_pq_file,
+                table_type="rel",
+                table_name="Rel",
+                table_pkey_parquet_field_name="id",
+            )
+        )
 
 
