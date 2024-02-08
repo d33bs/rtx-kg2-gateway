@@ -1,0 +1,77 @@
+# CITATION.cff file for software work and references.
+---
+cff-version: 1.2.0
+title: rtx-kg2-gateway
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: David
+    family-names: Bunten
+    orcid: 'https://orcid.org/0000-0001-6041-3665'
+  - given-names: Negar
+    family-names: Janani
+  - given-names: Faisal
+    family-names: Alquaddoomi
+    orcid: 'https://orcid.org/0000-0003-4297-8747'
+  - given-names: Casey
+    family-names: Greene
+    orcid: 'https://orcid.org/0000-0001-8713-9213'
+repository-code: 'https://github.com/CU-DBMI/rtx-kg2-gateway'
+url: 'https://github.com/CU-DBMI/rtx-kg2-gateway'
+abstract: >-
+  Enabling RTX-KG2 data access through various means.
+keywords:
+  - python
+  - knowledge-graph
+  - rtx-kg2
+  - hetionet
+license: BSD-3-Clause
+references:
+  - title:  >-
+      RTX-KG2: a system for building a semantically standardized knowledge graph for translational biomedicine
+    type: Journal Article
+    url: https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-022-04932-3
+    authors: 
+      - family-names: Wood
+        given-names: E. C.
+      - family-names: Glen
+        given-names: Amy K.
+      - family-names: Kvarfordt
+        given-names: Lindsey G.
+      - family-names: Womack
+        given-names: Finn
+      - family-names: Acevedo
+        given-names: Liliana
+      - family-names: Yoon
+        given-names: Timothy S.
+      - family-names: Ma
+        given-names: Chunyu
+      - family-names: Flores
+        given-names: Veronica
+      - family-names: Sinha
+        given-names: Meghamala
+      - family-names: Chodpathumwan
+        given-names: Yodsawalai
+      - family-names: Termehchy
+        given-names: Arash
+      - family-names: Roach
+        given-names: Jared C.
+      - family-names: Mendoza
+        given-names: Luis
+      - family-names: Hoffman
+        given-names: Andrew S.
+      - family-names: Deutsch
+        given-names: Eric W.
+      - family-names: Koslicki
+        given-names: David
+      - family-names: Ramsey
+        given-names: Stephen A.
+    date-released: 2022-09-29
+    identifiers: 
+      - type: doi
+        value: 10.1186/s12859-022-04932-3
+    notes: >-
+      RTX-KG2 data is referenced from https://github.com/ncats/translator-lfs-artifacts as part of this project.
+
