@@ -36,7 +36,7 @@ from rtx_kg2_functions import (
 # -
 
 # set data to be used throughout notebook
-chunk_size = 100000
+chunk_size = 500000
 data_dir = "data"
 parquet_dir = f"{data_dir}/"
 source_data_url = "https://github.com/ncats/translator-lfs-artifacts/raw/main/files/kg2c_lite_2.8.4.json.gz"
@@ -89,7 +89,7 @@ metadata_dict
 
 # +
 # build a sample of data using limited number of items
-
+# 500,000 rows extraction, full extraction ~500 secs
 # specify a map for from to specification
 # to move these to first two cols of related table
 edges_from_to_map = {"from": "subject", "to": "object"}
@@ -101,7 +101,7 @@ for top_level_name in [
     dataset_path = f"{parquet_dir}/{top_level_name}"
     pathlib.Path(dataset_path).mkdir(exist_ok=True)
     items = parse_items_by_topmost_item_name(
-        target_extracted_data, top_level_name, chunk_size, 1
+        target_extracted_data, top_level_name, chunk_size, 0
     )
     for idx, value in enumerate(items):
         if top_level_name == "nodes":
@@ -126,6 +126,28 @@ for top_level_name in [
                 table=table.replace_schema_metadata(metadata_dict),
                 where=f"{dataset_path}/{top_level_name}.{idx}.parquet",
             )
-# -
 
+# +
+# validate the counts to naively check that the data transferred properly
 
+for top_level_name in [
+    name for name in top_level_names if name not in metadata_top_level_names
+]:
+    # compare the count of objects from JSON vs Parquet
+    if top_level_name_item_counts[top_level_name] != sum(
+        # read the parquet dataset as a list of files
+        # then count the num rows using file-based metadata
+        # (avoids reading the entirety of dataset values)
+        [
+            parquet.read_metadata(parquet_file).num_rows
+            for parquet_file in parquet.ParquetDataset(
+                f"{parquet_dir}/{top_level_name}"
+            ).files
+        ]
+    ):
+        raise ValueError(
+            f"Mismatch in row counts for top level object: {top_level_name}"
+        )
+    print(
+        f"Row counts match from JSON object to Parquet for top level object: {top_level_name}"
+    )
