@@ -12,7 +12,7 @@
 #     name: python3
 # ---
 
-# # Generate RTX-KG2 Sample Parquet to Kuzu
+# # Generate RTX-KG2 Full Parquet to Kuzu
 
 # +
 import gzip
@@ -43,9 +43,11 @@ chunk_size = 1
 data_dir = "data"
 parquet_dir = f"{data_dir}/"
 source_data_url = "https://github.com/ncats/translator-lfs-artifacts/raw/main/files/kg2c_lite_2.8.4.json.gz"
-target_extracted_sample_data = f"{data_dir}/{pathlib.Path(source_data_url).name.replace('.json.gz', '.sample.json')}"
-parquet_dir = target_extracted_sample_data.replace(".json", ".dataset.parquet")
-kuzu_dir = target_extracted_sample_data.replace(".json", ".dataset.kuzu")
+target_extracted_sample_data = (
+    f"{data_dir}/{pathlib.Path(source_data_url).name.replace('.json.gz', '.json')}"
+)
+parquet_dir = target_extracted_sample_data.replace(".json", ".full.dataset.parquet")
+kuzu_dir = target_extracted_sample_data.replace(".json", ".full.dataset.kuzu")
 target_extracted_sample_data_schema_file = target_extracted_sample_data.replace(
     ".json", ".schema.json"
 )
@@ -53,7 +55,8 @@ print(f"Kuzu dir: {kuzu_dir}")
 
 
 # create path for the kuzu database to reside
-shutil.rmtree(kuzu_dir)
+if pathlib.Path(kuzu_dir).is_dir():
+    shutil.rmtree(kuzu_dir)
 pathlib.Path(kuzu_dir).mkdir(exist_ok=True)
 
 # init a Kuzu database and connection
@@ -84,10 +87,7 @@ for path in [f"{parquet_dir}/nodes", f"{parquet_dir}/edges"]:
 # -
 
 # note: we provide specific ordering here to ensure nodes are created before edges
-for path in [f"{parquet_dir}/nodes", 
-             # commenting out edges as these do not relate to one another in the sample
-             #f"{parquet_dir}/edges"
-            ]:
+for path in [f"{parquet_dir}/nodes", f"{parquet_dir}/edges"]:
 
     print(f"Working on kuzu ingest of parquet dataset: {path} ")
     # uses wildcard functionality for all files under parquet dataset dir

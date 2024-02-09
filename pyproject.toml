@@ -17,6 +17,7 @@ awkward = "^2.6.0"
 pyarrow = "^15.0.0"
 pandas = "^2.2.0"
 kuzu = "^0.1.0"
+poethepoet = "^0.24.4"
 
 [tool.poetry.group.dev.dependencies]
 isort = "^5.13.0"
@@ -24,6 +25,26 @@ black = "^24.0.1"
 jupyterlab-code-formatter = "^2.2.1"
 jupytext = "^1.16.0"
 jupyterlab = "^4.0.0"
+
+# defines a workflow for sample rtx-kg2 kuzu data work
+[tool.poe.tasks.notebook_sample_data_generation]
+# sets a cwd relative for the shell script below
+cwd = "src/notebooks"
+shell = """
+  python rtx_kg2_sample_and_schema_generation.py &&
+  python rtx_kg2_sample_json_to_parquet.py &&
+  python rtx_kg2_sample_parquet_to_kuzu.py
+"""
+
+# defines a workflow for full rtx-kg2 kuzu data work
+[tool.poe.tasks.notebook_full_data_generation]
+# sets a cwd relative for the shell script below
+cwd = "src/notebooks"
+shell = """
+  python rtx_kg2_sample_and_schema_generation.py &&
+  python rtx_kg2_full_json_to_parquet.py &&
+  python rtx_kg2_full_parquet_to_kuzu.py
+"""
 
 [build-system]
 requires = ["poetry-core"]

@@ -27,6 +27,7 @@ import ijson
 import kuzu
 import requests
 from genson import SchemaBuilder
+from pyarrow import parquet
 
 
 # -
