@@ -46,6 +46,16 @@ shell = """
   python rtx_kg2_full_parquet_to_kuzu.py
 """
 
+# defines a workflow for full rtx-kg2 kuzu data work with metanames
+[tool.poe.tasks.notebook_full_data_generation_with_metanames]
+# sets a cwd relative for the shell script below
+cwd = "src/notebooks"
+shell = """
+  python rtx_kg2_sample_and_schema_generation.py &&
+  python rtx_kg2_full_json_to_parquet.py &&
+  python rtx_kg2_metanames_parquet_for_kuzu.py
+"""
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
