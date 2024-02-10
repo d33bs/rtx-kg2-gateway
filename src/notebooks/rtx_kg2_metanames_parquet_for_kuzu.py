@@ -12,7 +12,7 @@
 #     name: python3
 # ---
 
-# # Generate RTX-KG2 Metanames Parquet to Kuzu
+# # Generate RTX-KG2 Metanames Parquet for Kuzu
 
 # +
 import gzip
