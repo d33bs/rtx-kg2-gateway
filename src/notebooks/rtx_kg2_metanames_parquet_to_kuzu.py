@@ -19,6 +19,7 @@ import gzip
 import json
 import pathlib
 import shutil
+from functools import partial
 from typing import Any, Dict, Generator, List, Literal
 
 import awkward as ak
@@ -101,11 +102,6 @@ def generate_cypher_table_create_stmt_from_parquet_path(
 
     parquet_schema = parquet.read_schema(parquet_path)
 
-    if table_pkey_parquet_field_name not in [field.name for field in parquet_schema]:
-        raise LookupError(
-            f"Unable to find field {table_pkey_parquet_field_name} in parquet file {parquet_path}."
-        )
-
     # Map Parquet data types to Cypher data types
     # more details here: https://kuzudb.com/docusaurus/cypher/data-types/
     parquet_to_cypher_type_mapping = {
@@ -140,6 +136,14 @@ def generate_cypher_table_create_stmt_from_parquet_path(
 
     # branch for creating node table
     if table_type == "node":
+
+        if table_pkey_parquet_field_name not in [
+            field.name for field in parquet_schema
+        ]:
+            raise LookupError(
+                f"Unable to find field {table_pkey_parquet_field_name} in parquet file {parquet_path}."
+            )
+
         return (
             f"CREATE NODE TABLE {table_name}"
             f"({cypher_fields_from_parquet_schema}, "
@@ -154,14 +158,36 @@ def generate_cypher_table_create_stmt_from_parquet_path(
     )
 
 
+def lookup_node_category_from_id(nodes_dataset_path: str, node_id: str):
+    with duckdb.connect() as ddb:
+        return ddb.execute(
+            f"""
+            SELECT DISTINCT category
+            FROM read_parquet('{nodes_dataset_path}') node
+            WHERE node.id = '{node_id}';
+            """
+        ).fetchone()[0]
+
+
 # +
 dataset_name_to_cypher_table_type_map = {"nodes": "node", "edges": "rel"}
+
+lookup_func = object()
 
 for path, table_name_column, primary_key in [
     [f"{parquet_metanames_dir}/nodes", "category", "id"],
     [f"{parquet_metanames_dir}/edges", "predicate", None],
 ]:
 
+    decoded_type = dataset_name_to_cypher_table_type_map[pathlib.Path(path).name]
+    if decoded_type == "nodes":
+        lookup_func = partial(
+            lookup_node_category_from_id, nodes_dataset_path=f"{path}/**"
+        )
+
+    saver = ""
+
+    count = 0
     for table_name in gather_table_names_from_parquet_path(
         parquet_path=f"{path}/**", column_with_table_name=table_name_column
     ):
@@ -172,31 +198,42 @@ for path, table_name_column, primary_key in [
         drop_table_if_exists(kz_conn=kz_conn, table_name=cypher_safe_table_name)
 
         print(parquet_metanames_metaname_base)
+
+        if decoded_type != "rel":
+            saver = cypher_safe_table_name
+
         create_stmt = generate_cypher_table_create_stmt_from_parquet_path(
             parquet_path=parquet_metanames_metaname_base,
-            table_type=dataset_name_to_cypher_table_type_map[pathlib.Path(path).name],
+            table_type=decoded_type,
             table_name=cypher_safe_table_name,
             table_pkey_parquet_field_name=primary_key,
+            rel_table_field_mapping={"from": saver, "to": saver},
         )
 
         print(
             f"Using the following create statement to create table:\n\n{create_stmt}\n\n"
         )
         kz_conn.execute(create_stmt)
-        break
+        count += 1
+        if count == 2:
+            break
 # -
 
 with duckdb.connect() as ddb:
     result = ddb.execute(
         """
-        WITH sub_and_preds AS (
-            SELECT object, subject
-            FROM read_parquet('data/kg2c_lite_2.8.4.full.dataset.parquet/edges/*')
-            WHERE predicate='biolink:subclass_of'
-        )
-        SELECT distinct category
-        FROM read_parquet('data/kg2c_lite_2.8.4.full.dataset.parquet/nodes/*'), sub_and_preds
-        WHERE id = sub_and_preds.object
+
+            SELECT DISTINCT 
+                subj_node.category as subj_category,
+                obj_node.category as obj_category
+            FROM read_parquet('data/kg2c_lite_2.8.4.full.dataset.parquet/edges/*') edge
+            LEFT JOIN read_parquet('data/kg2c_lite_2.8.4.full.dataset.parquet/nodes/*') AS subj_node ON
+                edge.subject = subj_node.id
+            LEFT JOIN read_parquet('data/kg2c_lite_2.8.4.full.dataset.parquet/nodes/*') AS obj_node ON
+                edge.object = obj_node.id
+            WHERE edge.predicate='biolink:causes'
+            limit 5
+
         """
     ).df()
     print(result)
