@@ -165,19 +165,32 @@ for path, table_name_column in [
                 ).fetchall()
 
             for subj, obj in distinct_node_type_pairs:
-                
+
+                parquet_metanames_metaname_node_rel_base = (
+                    f"{parquet_metanames_metaname_base}/{subj}_{obj}"
+                )
+                pathlib.Path(parquet_metanames_metaname_node_rel_base).mkdir(
+                    exist_ok=True
+                )
+
                 # determine rowcount for offsetting parquet files by metaname
                 with duckdb.connect() as ddb:
                     rowcount = int(
                         ddb.execute(
                             f"""
                             SELECT COUNT(*) as count
-                            FROM read_parquet('{path}/*')
-                            WHERE {table_name_column}='{table_name}';
+                            FROM read_parquet('{path}/*') edge
+                            LEFT JOIN read_parquet('{nodes_path}/*') AS subj_node ON
+                                edge.subject = subj_node.id
+                            LEFT JOIN read_parquet('{nodes_path}/*') AS obj_node ON
+                                edge.object = obj_node.id
+                            WHERE {table_name_column}='{table_name}'
+                            AND split_part(subj_node.category, ':', 2) = '{subj}'
+                            AND split_part(obj_node.category, ':', 2) = '{obj}';
                             """
                         ).fetchone()[0]
                     )
-    
+
                 # create a chunk offsets list for chunked parquet output by metaname
                 chunk_offsets = list(
                     range(
@@ -188,35 +201,27 @@ for path, table_name_column in [
                         chunk_size,
                     )
                 )
-    
+
                 # gather chunks of data by metaname and export to file using chunked offsets
                 with duckdb.connect() as ddb:
                     for idx, offset in enumerate(chunk_offsets):
                         ddb.execute(
                             f"""
                             COPY (
-                                SELECT *
-                                FROM read_parquet('{path}/*')
+                                SELECT edge.*
+                                FROM read_parquet('{path}/*') edge
+                                LEFT JOIN read_parquet('{nodes_path}/*') AS subj_node ON
+                                    edge.subject = subj_node.id
+                                LEFT JOIN read_parquet('{nodes_path}/*') AS obj_node ON
+                                    edge.object = obj_node.id
                                 WHERE {table_name_column}='{table_name}'
+                                AND split_part(subj_node.category, ':', 2) = '{subj}'
+                                AND split_part(obj_node.category, ':', 2) = '{obj}'
                                 LIMIT {chunk_size} OFFSET {offset}
                             )
-                            TO '{parquet_metanames_metaname_base}/{cypher_safe_table_name}.{idx}.parquet' (FORMAT PARQUET);
+                            TO '{parquet_metanames_metaname_node_rel_base}/{cypher_safe_table_name}.{subj}_{obj}.{idx}.parquet' (FORMAT PARQUET);
                             """
                         )
-
-with duckdb.connect() as ddb:
-    result = ddb.execute("""
-                SELECT DISTINCT 
-                split_part(subj_node.category, ':', 2) as subj_category,
-                        split_part(obj_node.category, ':', 2) as obj_category
-            FROM read_parquet('data/kg2c_lite_2.8.4.full.dataset.parquet/edges/*') edge
-            LEFT JOIN read_parquet('data/kg2c_lite_2.8.4.full.dataset.parquet/nodes/*') AS subj_node ON
-                edge.subject = subj_node.id
-            LEFT JOIN read_parquet('data/kg2c_lite_2.8.4.full.dataset.parquet/nodes/*') AS obj_node ON
-                edge.object = obj_node.id
-            WHERE edge.predicate='biolink:causes'
-    """).fetchall()
-result
 
 
 # +
