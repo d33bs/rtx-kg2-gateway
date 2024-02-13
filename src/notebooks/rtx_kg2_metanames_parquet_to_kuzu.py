@@ -20,7 +20,7 @@ import json
 import pathlib
 import shutil
 from functools import partial
-from typing import Any, Dict, Generator, List, Literal
+from typing import Any, Dict, Generator, List, Literal, Optional
 
 import awkward as ak
 import duckdb
@@ -91,14 +91,14 @@ def generate_cypher_table_create_stmt_from_parquet_path(
     parquet_path: str,
     table_type: Literal["node", "rel"],
     table_name: str,
-    rel_table_field_mapping: Dict[str, str] = {"from": "nodes", "to": "nodes"},
+    rel_table_field_mapping: Optional[List[str]] = None,
     table_pkey_parquet_field_name: str = "id",
     edges_to_or_from_fieldnames: List[str] = ["subject", "object"],
 ):
 
     if pathlib.Path(parquet_path).is_dir():
         # use first file discovered as basis for schema
-        parquet_path = next(pathlib.Path(parquet_path).glob("*.parquet"))
+        parquet_path = next(pathlib.Path(parquet_path).rglob("*.parquet"))
 
     parquet_schema = parquet.read_schema(parquet_path)
 
@@ -151,11 +151,21 @@ def generate_cypher_table_create_stmt_from_parquet_path(
         )
 
     # else we return for rel tables
-    return (
-        f"CREATE REL TABLE {table_name}"
-        f"(FROM {rel_table_field_mapping['from']} TO {rel_table_field_mapping['to']}, "
-        f"{cypher_fields_from_parquet_schema})"
+    # single or as a group, see here for more:
+    # https://kuzudb.com/docusaurus/cypher/data-definition/create-table/#create-rel-table-group
+
+    # compile string version of the node type possibilities for kuzu rel group
+    subj_and_objs = ", ".join(
+        [f"FROM {subj} TO {obj}" for subj, obj in rel_table_field_mapping]
     )
+
+    rel_tbl_start = (
+        f"CREATE REL TABLE {table_name}"
+        if len(rel_table_field_mapping) == 1
+        else f"CREATE REL TABLE GROUP {table_name}"
+    )
+
+    return f"{rel_tbl_start} ({subj_and_objs}, {cypher_fields_from_parquet_schema})"
 
 
 def lookup_node_category_from_id(nodes_dataset_path: str, node_id: str):
@@ -180,14 +190,7 @@ for path, table_name_column, primary_key in [
 ]:
 
     decoded_type = dataset_name_to_cypher_table_type_map[pathlib.Path(path).name]
-    if decoded_type == "nodes":
-        lookup_func = partial(
-            lookup_node_category_from_id, nodes_dataset_path=f"{path}/**"
-        )
 
-    saver = ""
-
-    count = 0
     for table_name in gather_table_names_from_parquet_path(
         parquet_path=f"{path}/**", column_with_table_name=table_name_column
     ):
@@ -197,46 +200,33 @@ for path, table_name_column, primary_key in [
 
         drop_table_if_exists(kz_conn=kz_conn, table_name=cypher_safe_table_name)
 
-        print(parquet_metanames_metaname_base)
+        if decoded_type == "node":
+            create_stmt = generate_cypher_table_create_stmt_from_parquet_path(
+                parquet_path=parquet_metanames_metaname_base,
+                table_type=decoded_type,
+                table_name=cypher_safe_table_name,
+                table_pkey_parquet_field_name=primary_key,
+            )
+        elif decoded_type == "rel":
 
-        if decoded_type != "rel":
-            saver = cypher_safe_table_name
-
-        create_stmt = generate_cypher_table_create_stmt_from_parquet_path(
-            parquet_path=parquet_metanames_metaname_base,
-            table_type=decoded_type,
-            table_name=cypher_safe_table_name,
-            table_pkey_parquet_field_name=primary_key,
-            rel_table_field_mapping={"from": saver, "to": saver},
-        )
+            create_stmt = generate_cypher_table_create_stmt_from_parquet_path(
+                parquet_path=parquet_metanames_metaname_base,
+                table_type=decoded_type,
+                table_name=cypher_safe_table_name,
+                table_pkey_parquet_field_name=primary_key,
+                rel_table_field_mapping=[
+                    str(pathlib.Path(element).name).split("_")
+                    for element in list(
+                        pathlib.Path(parquet_metanames_metaname_base).glob("*")
+                    )
+                ],
+            )
 
         print(
             f"Using the following create statement to create table:\n\n{create_stmt}\n\n"
         )
         kz_conn.execute(create_stmt)
-        count += 1
-        if count == 2:
-            break
 # -
-
-with duckdb.connect() as ddb:
-    result = ddb.execute(
-        """
-
-            SELECT DISTINCT 
-                subj_node.category as subj_category,
-                obj_node.category as obj_category
-            FROM read_parquet('data/kg2c_lite_2.8.4.full.dataset.parquet/edges/*') edge
-            LEFT JOIN read_parquet('data/kg2c_lite_2.8.4.full.dataset.parquet/nodes/*') AS subj_node ON
-                edge.subject = subj_node.id
-            LEFT JOIN read_parquet('data/kg2c_lite_2.8.4.full.dataset.parquet/nodes/*') AS obj_node ON
-                edge.object = obj_node.id
-            WHERE edge.predicate='biolink:causes'
-            limit 5
-
-        """
-    ).df()
-    print(result)
 
 # note: we provide specific ordering here to ensure nodes are created before edges
 for path in [f"{parquet_dir}/nodes", f"{parquet_dir}/edges"]:
