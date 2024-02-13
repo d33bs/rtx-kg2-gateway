@@ -53,7 +53,8 @@ cwd = "src/notebooks"
 shell = """
   python rtx_kg2_sample_and_schema_generation.py &&
   python rtx_kg2_full_json_to_parquet.py &&
-  python rtx_kg2_metanames_parquet_for_kuzu.py
+  python rtx_kg2_metanames_parquet_for_kuzu.py &&
+  python rtx_kg2_metanames_parquet_to_kuzu.py
 """
 
 [build-system]
