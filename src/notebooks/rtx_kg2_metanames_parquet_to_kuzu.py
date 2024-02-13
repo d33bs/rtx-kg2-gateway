@@ -239,7 +239,7 @@ for path in [f"{parquet_metanames_dir}/nodes", f"{parquet_metanames_dir}/edges"]
             # see: https://kuzudb.com/docusaurus/data-import/csv-import#copy-from-multiple-csv-files-to-a-single-table
             ingest_stmt = f'COPY {table_name} FROM "{table}/*.parquet"'
             print(ingest_stmt)
-            # kz_conn.execute(ingest_stmt)
+            kz_conn.execute(ingest_stmt)
         elif decoded_type == "rel":
             rel_node_pairs = list(pathlib.Path(table).glob("*"))
             for rel_node_pair in rel_node_pairs:
@@ -250,6 +250,6 @@ for path in [f"{parquet_metanames_dir}/nodes", f"{parquet_metanames_dir}/edges"]
                     else f'COPY {table_name}_{rel_node_pair_name} FROM "{rel_node_pair}/*.parquet"'
                 )
                 print(ingest_stmt)
-                # kz_conn.execute(rel_ingest_stmt)
+                kz_conn.execute(rel_ingest_stmt)
 
 
