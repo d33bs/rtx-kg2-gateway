@@ -58,6 +58,7 @@ kuzu_dir = target_extracted_sample_data.replace(
 target_extracted_sample_data_schema_file = target_extracted_sample_data.replace(
     ".json", ".schema.json"
 )
+dataset_name_to_cypher_table_type_map = {"nodes": "node", "edges": "rel"}
 print(f"Kuzu dir: {kuzu_dir}")
 
 
@@ -180,8 +181,6 @@ def lookup_node_category_from_id(nodes_dataset_path: str, node_id: str):
 
 
 # +
-dataset_name_to_cypher_table_type_map = {"nodes": "node", "edges": "rel"}
-
 lookup_func = object()
 
 for path, table_name_column, primary_key in [
@@ -229,9 +228,28 @@ for path, table_name_column, primary_key in [
 # -
 
 # note: we provide specific ordering here to ensure nodes are created before edges
-for path in [f"{parquet_dir}/nodes", f"{parquet_dir}/edges"]:
+for path in [f"{parquet_metanames_dir}/nodes", f"{parquet_metanames_dir}/edges"]:
 
+    decoded_type = dataset_name_to_cypher_table_type_map[pathlib.Path(path).name]
     print(f"Working on kuzu ingest of parquet dataset: {path} ")
-    # uses wildcard functionality for all files under parquet dataset dir
-    # see: https://kuzudb.com/docusaurus/data-import/csv-import#copy-from-multiple-csv-files-to-a-single-table
-    kz_conn.execute(f'COPY {pathlib.Path(path).name} FROM "{path}/*.parquet"')
+    for table in pathlib.Path(path).glob("*"):
+        table_name = table.name
+        if decoded_type == "node":
+            # uses wildcard functionality for all files under parquet dataset dir
+            # see: https://kuzudb.com/docusaurus/data-import/csv-import#copy-from-multiple-csv-files-to-a-single-table
+            ingest_stmt = f'COPY {table_name} FROM "{table}/*.parquet"'
+            print(ingest_stmt)
+            # kz_conn.execute(ingest_stmt)
+        elif decoded_type == "rel":
+            rel_node_pairs = list(pathlib.Path(table).glob("*"))
+            for rel_node_pair in rel_node_pairs:
+                rel_node_pair_name = rel_node_pair.name
+                ingest_stmt = (
+                    f'COPY {table_name} FROM "{rel_node_pair}/*.parquet"'
+                    if len(rel_node_pairs) == 1
+                    else f'COPY {table_name}_{rel_node_pair_name} FROM "{rel_node_pair}/*.parquet"'
+                )
+                print(ingest_stmt)
+                # kz_conn.execute(rel_ingest_stmt)
+
+
