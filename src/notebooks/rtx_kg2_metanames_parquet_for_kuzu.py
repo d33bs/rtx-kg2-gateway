@@ -108,44 +108,115 @@ for path, table_name_column in [
         pathlib.Path(parquet_metanames_metaname_base).mkdir(exist_ok=True)
 
         print(f"Exporting metaname tables for: {table_name}")
-
-        # determine rowcount for offsetting parquet files by metaname
-        with duckdb.connect() as ddb:
-            rowcount = int(
-                ddb.execute(
-                    f"""
-                    SELECT COUNT(*) as count
-                    FROM read_parquet('{path}/*')
-                    WHERE {table_name_column}='{table_name}';
-                    """
-                ).fetchone()[0]
-            )
-
-        # create a chunk offsets list for chunked parquet output by metaname
-        chunk_offsets = list(
-            range(
-                0,
-                # gather rowcount from table and use as maximum for range
-                rowcount,
-                # step through using chunk size
-                chunk_size,
-            )
-        )
-
-        # gather chunks of data by metaname and export to file using chunked offsets
-        with duckdb.connect() as ddb:
-            for idx, offset in enumerate(chunk_offsets):
-                ddb.execute(
-                    f"""
-                    COPY (
-                        SELECT *
+        if pathlib.Path(path).name == "nodes":
+            # determine rowcount for offsetting parquet files by metaname
+            with duckdb.connect() as ddb:
+                rowcount = int(
+                    ddb.execute(
+                        f"""
+                        SELECT COUNT(*) as count
                         FROM read_parquet('{path}/*')
-                        WHERE {table_name_column}='{table_name}'
-                        LIMIT {chunk_size} OFFSET {offset}
-                    )
-                    TO '{parquet_metanames_metaname_base}/{cypher_safe_table_name}.{idx}.parquet' (FORMAT PARQUET);
-                    """
+                        WHERE {table_name_column}='{table_name}';
+                        """
+                    ).fetchone()[0]
                 )
+
+            # create a chunk offsets list for chunked parquet output by metaname
+            chunk_offsets = list(
+                range(
+                    0,
+                    # gather rowcount from table and use as maximum for range
+                    rowcount,
+                    # step through using chunk size
+                    chunk_size,
+                )
+            )
+
+            # gather chunks of data by metaname and export to file using chunked offsets
+            with duckdb.connect() as ddb:
+                for idx, offset in enumerate(chunk_offsets):
+                    ddb.execute(
+                        f"""
+                        COPY (
+                            SELECT *
+                            FROM read_parquet('{path}/*')
+                            WHERE {table_name_column}='{table_name}'
+                            LIMIT {chunk_size} OFFSET {offset}
+                        )
+                        TO '{parquet_metanames_metaname_base}/{cypher_safe_table_name}.{idx}.parquet' (FORMAT PARQUET);
+                        """
+                    )
+        elif pathlib.Path(path).name == "edges":
+
+            nodes_path = path.replace("edges", "nodes")
+            with duckdb.connect() as ddb:
+                distinct_node_type_pairs = ddb.execute(
+                    f"""
+                    SELECT DISTINCT 
+                        split_part(subj_node.category, ':', 2) as subj_category,
+                        split_part(obj_node.category, ':', 2) as obj_category
+                    FROM read_parquet('{path}/*') edge
+                    LEFT JOIN read_parquet('{nodes_path}/*') AS subj_node ON
+                        edge.subject = subj_node.id
+                    LEFT JOIN read_parquet('{nodes_path}/*') AS obj_node ON
+                        edge.object = obj_node.id
+                    WHERE edge.predicate='{table_name}'
+                    """
+                ).fetchall()
+
+            for subj, obj in distinct_node_type_pairs:
+                
+                # determine rowcount for offsetting parquet files by metaname
+                with duckdb.connect() as ddb:
+                    rowcount = int(
+                        ddb.execute(
+                            f"""
+                            SELECT COUNT(*) as count
+                            FROM read_parquet('{path}/*')
+                            WHERE {table_name_column}='{table_name}';
+                            """
+                        ).fetchone()[0]
+                    )
+    
+                # create a chunk offsets list for chunked parquet output by metaname
+                chunk_offsets = list(
+                    range(
+                        0,
+                        # gather rowcount from table and use as maximum for range
+                        rowcount,
+                        # step through using chunk size
+                        chunk_size,
+                    )
+                )
+    
+                # gather chunks of data by metaname and export to file using chunked offsets
+                with duckdb.connect() as ddb:
+                    for idx, offset in enumerate(chunk_offsets):
+                        ddb.execute(
+                            f"""
+                            COPY (
+                                SELECT *
+                                FROM read_parquet('{path}/*')
+                                WHERE {table_name_column}='{table_name}'
+                                LIMIT {chunk_size} OFFSET {offset}
+                            )
+                            TO '{parquet_metanames_metaname_base}/{cypher_safe_table_name}.{idx}.parquet' (FORMAT PARQUET);
+                            """
+                        )
+
+with duckdb.connect() as ddb:
+    result = ddb.execute("""
+                SELECT DISTINCT 
+                split_part(subj_node.category, ':', 2) as subj_category,
+                        split_part(obj_node.category, ':', 2) as obj_category
+            FROM read_parquet('data/kg2c_lite_2.8.4.full.dataset.parquet/edges/*') edge
+            LEFT JOIN read_parquet('data/kg2c_lite_2.8.4.full.dataset.parquet/nodes/*') AS subj_node ON
+                edge.subject = subj_node.id
+            LEFT JOIN read_parquet('data/kg2c_lite_2.8.4.full.dataset.parquet/nodes/*') AS obj_node ON
+                edge.object = obj_node.id
+            WHERE edge.predicate='biolink:causes'
+    """).fetchall()
+result
 
 
 # +
