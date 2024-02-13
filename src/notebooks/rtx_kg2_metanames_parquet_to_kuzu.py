@@ -250,6 +250,6 @@ for path in [f"{parquet_metanames_dir}/nodes", f"{parquet_metanames_dir}/edges"]
                     else f'COPY {table_name}_{rel_node_pair_name} FROM "{rel_node_pair}/*.parquet"'
                 )
                 print(ingest_stmt)
-                kz_conn.execute(rel_ingest_stmt)
+                kz_conn.execute(ingest_stmt)
 
 
