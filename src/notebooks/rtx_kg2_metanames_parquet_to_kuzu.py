@@ -225,7 +225,26 @@ for path, table_name_column, primary_key in [
             f"Using the following create statement to create table:\n\n{create_stmt}\n\n"
         )
         kz_conn.execute(create_stmt)
+
+
 # -
+
+def kz_execute_with_retries(
+    kz_conn: kuzu.connection.Connection, kz_stmt: str, retry_count: int = 5
+):
+    """
+    Retry running a kuzu execution up to retry_count number of times.
+    """
+
+    while retry_count > 1:
+
+        try:
+            kz_conn.execute(kz_stmt)
+            break
+        except Exception as e:
+            print(f"Retrying after exception: {e}")
+            retry_count -= 1
+
 
 # note: we provide specific ordering here to ensure nodes are created before edges
 for path in [f"{parquet_metanames_dir}/nodes", f"{parquet_metanames_dir}/edges"]:
@@ -239,7 +258,7 @@ for path in [f"{parquet_metanames_dir}/nodes", f"{parquet_metanames_dir}/edges"]
             # see: https://kuzudb.com/docusaurus/data-import/csv-import#copy-from-multiple-csv-files-to-a-single-table
             ingest_stmt = f'COPY {table_name} FROM "{table}/*.parquet"'
             print(ingest_stmt)
-            kz_conn.execute(ingest_stmt)
+            kz_execute_with_retries(kz_conn=kz_conn, kz_stmt=ingest_stmt)
         elif decoded_type == "rel":
             rel_node_pairs = list(pathlib.Path(table).glob("*"))
             for rel_node_pair in rel_node_pairs:
@@ -250,6 +269,6 @@ for path in [f"{parquet_metanames_dir}/nodes", f"{parquet_metanames_dir}/edges"]
                     else f'COPY {table_name}_{rel_node_pair_name} FROM "{rel_node_pair}/*.parquet"'
                 )
                 print(ingest_stmt)
-                kz_conn.execute(ingest_stmt)
+                kz_execute_with_retries(kz_conn=kz_conn, kz_stmt=ingest_stmt)
 
 
