@@ -27,7 +27,6 @@ keywords:
   - python
   - knowledge-graph
   - rtx-kg2
-  - hetionet
 license: BSD-3-Clause
 references:
   - title:  >-
@@ -75,4 +74,35 @@ references:
         value: 10.1186/s12859-022-04932-3
     notes: >-
       RTX-KG2 data is referenced from https://github.com/ncats/translator-lfs-artifacts as part of this project.
+  - title:  >-
+      Kùzu Graph Database Management System
+    type: software
+    authors: 
+      - family-names: Feng
+        given-names: Xiyang
+      - family-names: Jin
+        given-names: Guodong
+      - family-names: Chen
+        given-names: Ziyi
+      - family-names: Liu
+        given-names: Chang
+      - family-names: Salihoğlu
+        given-names: Semih
+    date-released: 2023
+  - title:  >-
+      Kùzu Database Management System Source Code
+    type: software
+    url: https://github.com/kuzudb/kuzu
+    authors: 
+      - family-names: Feng
+        given-names: Xiyang
+      - family-names: Jin
+        given-names: Guodong
+      - family-names: Chen
+        given-names: Ziyi
+      - family-names: Liu
+        given-names: Chang
+      - family-names: Salihoğlu
+        given-names: Semih
+    date-released: 2022-11
 
