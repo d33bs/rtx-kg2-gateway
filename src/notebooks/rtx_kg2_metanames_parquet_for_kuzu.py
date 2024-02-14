@@ -40,7 +40,7 @@ from rtx_kg2_functions import (
 # -
 
 # set data to be used throughout notebook
-chunk_size = 500000
+chunk_size = 50000
 data_dir = "data"
 parquet_dir = f"{data_dir}/"
 source_data_url = "https://github.com/ncats/translator-lfs-artifacts/raw/main/files/kg2c_lite_2.8.4.json.gz"
@@ -135,16 +135,16 @@ for path, table_name_column in [
             # gather chunks of data by metaname and export to file using chunked offsets
             with duckdb.connect() as ddb:
                 for idx, offset in enumerate(chunk_offsets):
-                    ddb.execute(
-                        f"""
-                        COPY (
+                    parquet.write_table(
+                        table=ddb.execute(
+                            f"""
                             SELECT *
                             FROM read_parquet('{path}/*')
                             WHERE {table_name_column}='{table_name}'
-                            LIMIT {chunk_size} OFFSET {offset}
-                        )
-                        TO '{parquet_metanames_metaname_base}/{cypher_safe_table_name}.{idx}.parquet' (FORMAT PARQUET);
-                        """
+                            LIMIT {chunk_size} OFFSET {offset};
+                            """
+                        ).arrow(),
+                        where=f"{parquet_metanames_metaname_base}/{cypher_safe_table_name}.{idx}.parquet",
                     )
         elif pathlib.Path(path).name == "edges":
 
@@ -205,9 +205,9 @@ for path, table_name_column in [
                 # gather chunks of data by metaname and export to file using chunked offsets
                 with duckdb.connect() as ddb:
                     for idx, offset in enumerate(chunk_offsets):
-                        ddb.execute(
-                            f"""
-                            COPY (
+                        parquet.write_table(
+                            table=ddb.execute(
+                                f"""
                                 SELECT edge.*
                                 FROM read_parquet('{path}/*') edge
                                 LEFT JOIN read_parquet('{nodes_path}/*') AS subj_node ON
@@ -218,9 +218,9 @@ for path, table_name_column in [
                                 AND split_part(subj_node.category, ':', 2) = '{subj}'
                                 AND split_part(obj_node.category, ':', 2) = '{obj}'
                                 LIMIT {chunk_size} OFFSET {offset}
-                            )
-                            TO '{parquet_metanames_metaname_node_rel_base}/{cypher_safe_table_name}.{subj}_{obj}.{idx}.parquet' (FORMAT PARQUET);
                             """
+                            ).arrow(),
+                            where=f"{parquet_metanames_metaname_node_rel_base}/{cypher_safe_table_name}.{subj}_{obj}.{idx}.parquet",
                         )
 
 
