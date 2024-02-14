@@ -12,13 +12,14 @@
 #     name: python3
 # ---
 
-# # Generate RTX-KG2 Metanames Parquet to Kuzu
+# # Generate RTX-KG2 Metanames Parquet to Kuzu - Create Tables
 
 # +
 import gzip
 import json
 import pathlib
 import shutil
+import time
 from functools import partial
 from typing import Any, Dict, Generator, List, Literal, Optional
 
@@ -169,17 +170,6 @@ def generate_cypher_table_create_stmt_from_parquet_path(
     return f"{rel_tbl_start} ({subj_and_objs}, {cypher_fields_from_parquet_schema})"
 
 
-def lookup_node_category_from_id(nodes_dataset_path: str, node_id: str):
-    with duckdb.connect() as ddb:
-        return ddb.execute(
-            f"""
-            SELECT DISTINCT category
-            FROM read_parquet('{nodes_dataset_path}') node
-            WHERE node.id = '{node_id}';
-            """
-        ).fetchone()[0]
-
-
 # +
 lookup_func = object()
 
@@ -225,50 +215,6 @@ for path, table_name_column, primary_key in [
             f"Using the following create statement to create table:\n\n{create_stmt}\n\n"
         )
         kz_conn.execute(create_stmt)
-
-
 # -
-
-def kz_execute_with_retries(
-    kz_conn: kuzu.connection.Connection, kz_stmt: str, retry_count: int = 5
-):
-    """
-    Retry running a kuzu execution up to retry_count number of times.
-    """
-
-    while retry_count > 1:
-
-        try:
-            kz_conn.execute(kz_stmt)
-            break
-        except Exception as e:
-            print(f"Retrying after exception: {e}")
-            retry_count -= 1
-
-
-# note: we provide specific ordering here to ensure nodes are created before edges
-for path in [f"{parquet_metanames_dir}/nodes", f"{parquet_metanames_dir}/edges"]:
-
-    decoded_type = dataset_name_to_cypher_table_type_map[pathlib.Path(path).name]
-    print(f"Working on kuzu ingest of parquet dataset: {path} ")
-    for table in pathlib.Path(path).glob("*"):
-        table_name = table.name
-        if decoded_type == "node":
-            # uses wildcard functionality for all files under parquet dataset dir
-            # see: https://kuzudb.com/docusaurus/data-import/csv-import#copy-from-multiple-csv-files-to-a-single-table
-            ingest_stmt = f'COPY {table_name} FROM "{table}/*.parquet"'
-            print(ingest_stmt)
-            kz_execute_with_retries(kz_conn=kz_conn, kz_stmt=ingest_stmt)
-        elif decoded_type == "rel":
-            rel_node_pairs = list(pathlib.Path(table).glob("*"))
-            for rel_node_pair in rel_node_pairs:
-                rel_node_pair_name = rel_node_pair.name
-                ingest_stmt = (
-                    f'COPY {table_name} FROM "{rel_node_pair}/*.parquet"'
-                    if len(rel_node_pairs) == 1
-                    else f'COPY {table_name}_{rel_node_pair_name} FROM "{rel_node_pair}/*.parquet"'
-                )
-                print(ingest_stmt)
-                kz_execute_with_retries(kz_conn=kz_conn, kz_stmt=ingest_stmt)
 
 
