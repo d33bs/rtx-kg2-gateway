@@ -13,6 +13,10 @@
 # ---
 
 # # Generate RTX-KG2 Metanames Parquet to Kuzu - Copy Data to Tables
+#
+# Note: may require large amount of memory to successfully perform ingest.
+#
+# GCP VM e2-standard-16 type was used showing 50% memory utilization at some points (32GB).
 
 # +
 import gzip
