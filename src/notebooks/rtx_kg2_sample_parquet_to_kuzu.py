@@ -36,6 +36,7 @@ from rtx_kg2_functions import (
     parse_items_by_topmost_item_name,
     parse_metadata_by_object_name,
 )
+
 # -
 
 # set data to be used throughout notebook
@@ -84,10 +85,11 @@ for path in [f"{parquet_dir}/nodes", f"{parquet_dir}/edges"]:
 # -
 
 # note: we provide specific ordering here to ensure nodes are created before edges
-for path in [f"{parquet_dir}/nodes", 
-             # commenting out edges as these do not relate to one another in the sample
-             #f"{parquet_dir}/edges"
-            ]:
+for path in [
+    f"{parquet_dir}/nodes",
+    # commenting out edges as these do not relate to one another in the sample
+    # f"{parquet_dir}/edges"
+]:
 
     print(f"Working on kuzu ingest of parquet dataset: {path} ")
     # uses wildcard functionality for all files under parquet dataset dir

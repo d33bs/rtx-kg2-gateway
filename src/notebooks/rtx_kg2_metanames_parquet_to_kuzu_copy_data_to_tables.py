@@ -43,6 +43,7 @@ from rtx_kg2_functions import (
     parse_items_by_topmost_item_name,
     parse_metadata_by_object_name,
 )
+
 # -
 
 # set data to be used throughout notebook
@@ -137,5 +138,3 @@ for path in [f"{parquet_metanames_dir}/nodes", f"{parquet_metanames_dir}/edges"]
 
             table_count += 1
 print("Finished running Kuzu COPY statements.")
-
-

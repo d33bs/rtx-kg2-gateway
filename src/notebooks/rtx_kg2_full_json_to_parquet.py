@@ -33,6 +33,7 @@ from rtx_kg2_functions import (
     parse_items_by_topmost_item_name,
     parse_metadata_by_object_name,
 )
+
 # -
 
 # set data to be used throughout notebook
@@ -83,7 +84,7 @@ metadata_dict = dict(
         )
         for metadata_top_level_name in metadata_top_level_names
     },
-    **{"source_data_json_schema": target_extracted_sample_data_schema}
+    **{"source_data_json_schema": target_extracted_sample_data_schema},
 )
 metadata_dict
 

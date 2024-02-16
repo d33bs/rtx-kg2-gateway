@@ -29,8 +29,8 @@ import requests
 from genson import SchemaBuilder
 from pyarrow import parquet
 
-
 # -
+
 
 def download_file(url, download_dir):
     # referenced with modification from:

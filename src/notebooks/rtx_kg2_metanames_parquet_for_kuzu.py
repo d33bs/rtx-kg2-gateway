@@ -37,6 +37,7 @@ from rtx_kg2_functions import (
     parse_items_by_topmost_item_name,
     parse_metadata_by_object_name,
 )
+
 # -
 
 # set data to be used throughout notebook
@@ -152,7 +153,7 @@ for path, table_name_column in [
             with duckdb.connect() as ddb:
                 distinct_node_type_pairs = ddb.execute(
                     f"""
-                    SELECT DISTINCT 
+                    SELECT DISTINCT
                         split_part(subj_node.category, ':', 2) as subj_category,
                         split_part(obj_node.category, ':', 2) as obj_category
                     FROM read_parquet('{path}/*') edge

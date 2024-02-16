@@ -23,6 +23,7 @@ import tarfile
 
 import kuzu
 from rtx_kg2_functions import download_file, extract_tar_gz
+
 # -
 
 # set some variables for the work below

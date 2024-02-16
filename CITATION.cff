@@ -31,9 +31,9 @@ license: BSD-3-Clause
 references:
   - title:  >-
       RTX-KG2: a system for building a semantically standardized knowledge graph for translational biomedicine
-    type: Journal Article
+    type: article
     url: https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-022-04932-3
-    authors: 
+    authors:
       - family-names: Wood
         given-names: E. C.
       - family-names: Glen
@@ -69,7 +69,7 @@ references:
       - family-names: Ramsey
         given-names: Stephen A.
     date-released: 2022-09-29
-    identifiers: 
+    identifiers:
       - type: doi
         value: 10.1186/s12859-022-04932-3
     notes: >-
@@ -77,23 +77,8 @@ references:
   - title:  >-
       Kùzu Graph Database Management System
     type: software
-    authors: 
-      - family-names: Feng
-        given-names: Xiyang
-      - family-names: Jin
-        given-names: Guodong
-      - family-names: Chen
-        given-names: Ziyi
-      - family-names: Liu
-        given-names: Chang
-      - family-names: Salihoğlu
-        given-names: Semih
-    date-released: 2023
-  - title:  >-
-      Kùzu Database Management System Source Code
-    type: software
     url: https://github.com/kuzudb/kuzu
-    authors: 
+    authors:
       - family-names: Feng
         given-names: Xiyang
       - family-names: Jin
@@ -104,11 +89,10 @@ references:
         given-names: Chang
       - family-names: Salihoğlu
         given-names: Semih
-    date-released: 2022-11
   - title:  DuckDB
     type: software
     url: https://github.com/duckdb/duckdb
-    authors: 
+    authors:
       - family-names: Raasveldt
         given-names: Mark
       - family-names: Muehleisen

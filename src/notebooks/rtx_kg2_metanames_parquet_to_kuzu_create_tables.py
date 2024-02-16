@@ -39,6 +39,7 @@ from rtx_kg2_functions import (
     parse_items_by_topmost_item_name,
     parse_metadata_by_object_name,
 )
+
 # -
 
 # set data to be used throughout notebook
@@ -216,5 +217,3 @@ for path, table_name_column, primary_key in [
         )
         kz_conn.execute(create_stmt)
 # -
-
-

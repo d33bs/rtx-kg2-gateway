@@ -31,7 +31,7 @@ repos:
       - id: nbqa-black
       - id: nbqa-isort
   - repo: https://github.com/psf/black
-    rev: 24.1.0
+    rev: 24.2.0
     hooks:
       - id: black
   - repo: https://github.com/asottile/blacken-docs
@@ -43,9 +43,13 @@ repos:
     hooks:
       - id: isort
   - repo: https://github.com/google/yamlfmt
-    rev: v0.10.0
+    rev: v0.11.0
     hooks:
       - id: yamlfmt
+  - repo: https://github.com/citation-file-format/cffconvert
+    rev: 5295f87c0e261da61a7b919fc754e3a77edd98a7
+    hooks:
+      - id: validate-cff
   - repo: https://github.com/rhysd/actionlint
     rev: v1.6.26
     hooks:
