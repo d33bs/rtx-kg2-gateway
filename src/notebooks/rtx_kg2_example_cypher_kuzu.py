@@ -19,42 +19,36 @@ import os
 import pathlib
 import tarfile
 
-import gdown
 import kuzu
+from rtx_kg2_functions import download_file, extract_tar_gz
 # -
 
 # set some variables for the work below
-gdrive_url = "https://drive.google.com/uc?id=1H9_jiLgvjr_AjoYPu_Pi9C_47Zm1lIei"
+source_data_url = "https://github.com/CU-DBMI/rtx-kg2-gateway/releases/download/v0.0.1/kg2c_lite_2.8.4.full.with-metanames.dataset.kuzu.tar.gz"
 target_dir = "data"
 target_database_path = f"{target_dir}/kg2c_lite_2.8.4.full.with-metanames.dataset.kuzu"
 
-
-def download_and_extract_gdrive(url, output_dir):
-
-    temp_download_path = "temp.tar.gz"
-
-    # Download the file from Google Drive
-    print("Downloading file.")
-    gdown.download(url, temp_download_path, quiet=True)
-
-    # Extract the tar.gz file
-    print("Extracting database.")
-    with tarfile.open(temp_download_path, "r:gz") as tar:
-        tar.extractall(output_dir)
-
-    print("Cleaning up download.")
-    # Remove the temporary tar.gz file
-    pathlib.Path(temp_download_path).unlink()
-
-    return output_dir
-
+pathlib.Path(target_dir).mkdir(exist_ok=True)
 
 # niave check for existing database to avoid redownloading / extracting if possible
 if not pathlib.Path(target_database_path).is_dir():
-    download_and_extract_gdrive(gdrive_url, target_dir)
+    downloaded_file = download_file(url=source_data_url, download_dir=target_dir)
+    extract_dir = extract_tar_gz(
+        tar_gz_path=f"{target_dir}/{downloaded_file}", output_dir=target_dir
+    )
 
 # init a Kuzu database and connection
 db = kuzu.Database(target_database_path)
 kz_conn = kuzu.Connection(db)
 
-kz_conn.execute("CALL SHOW_TABLES() RETURN *;").df()
+# show tables
+kz_conn.execute("CALL SHOW_TABLES() RETURN *;").get_as_df()
+
+# run an example query
+kz_conn.execute(
+    """
+    MATCH (d:Disease)
+    WHERE d.name = "Down syndrome"
+    RETURN d.id, d.name, d.all_categories;
+    """
+).get_as_df()

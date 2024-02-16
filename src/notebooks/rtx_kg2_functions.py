@@ -48,6 +48,23 @@ def download_file(url, download_dir):
     return local_filename
 
 
+def extract_tar_gz(
+    tar_gz_path: str, output_dir: str, remove_tar_gz_after_extract: bool = True
+):
+
+    # Extract the tar.gz file
+    print("Extracting tar gz.")
+    with tarfile.open(tar_gz_path, "r:gz") as tar:
+        tar.extractall(output_dir)
+
+    if remove_tar_gz_after_extract:
+        print("Removing source tar gz file.")
+        # Remove the temporary tar.gz file
+        pathlib.Path(tar_gz_path).unlink()
+
+    return output_dir
+
+
 def find_top_level_names(json_file: str) -> Generator[str, None, None]:
     """
     Find the topmost item names by way of streaming a json
