@@ -35,6 +35,7 @@ from rtx_kg2_functions import (
     count_items_under_top_level_name,
     drop_table_if_exists,
     find_top_level_names,
+    gather_table_names_from_parquet_path,
     generate_cypher_table_create_stmt_from_parquet_file,
     parse_items_by_topmost_item_name,
     parse_metadata_by_object_name,
@@ -72,22 +73,6 @@ pathlib.Path(kuzu_dir).mkdir(exist_ok=True)
 # init a Kuzu database and connection
 db = kuzu.Database(f"{kuzu_dir}")
 kz_conn = kuzu.Connection(db)
-
-
-def gather_table_names_from_parquet_path(
-    parquet_path: str,
-    column_with_table_name: str = "id",
-):
-    with duckdb.connect() as ddb:
-        return [
-            element[0]
-            for element in ddb.execute(
-                f"""
-            SELECT DISTINCT {column_with_table_name}
-            FROM read_parquet('{parquet_path}')
-            """
-            ).fetchall()
-        ]
 
 
 def generate_cypher_table_create_stmt_from_parquet_path(
@@ -216,4 +201,3 @@ for path, table_name_column, primary_key in [
             f"Using the following create statement to create table:\n\n{create_stmt}\n\n"
         )
         kz_conn.execute(create_stmt)
-# -

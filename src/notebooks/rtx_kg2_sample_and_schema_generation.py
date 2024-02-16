@@ -24,6 +24,12 @@ from typing import Any, Dict, Generator, List
 import ijson
 import requests
 from genson import SchemaBuilder
+from rtx_kg2_functions import (
+    count_items_under_top_level_name,
+    download_file,
+    find_top_level_names,
+    parse_items_by_topmost_item_name,
+)
 
 # +
 # set data to be used throughout notebook
@@ -48,22 +54,6 @@ json_schema_init = {
 # -
 
 
-def download_file(url, download_dir):
-    # referenced with modification from:
-    # https://stackoverflow.com/a/16696317
-    local_filename = url.split("/")[-1]
-    # NOTE the stream=True parameter below
-    with requests.get(url, stream=True) as r:
-        r.raise_for_status()
-        with open(f"{download_dir}/{local_filename}", "wb") as f:
-            for chunk in r.iter_content(chunk_size=8192):
-                # If you have chunk encoded response uncomment if
-                # and set chunk_size parameter to None.
-                # if chunk:
-                f.write(chunk)
-    return local_filename
-
-
 # perform download of source data
 download_file(source_data_url, data_dir)
 
@@ -71,40 +61,9 @@ download_file(source_data_url, data_dir)
 with open(target_extracted_data, "wb") as f_out, gzip.open(target_data, "rb") as f_in:
     shutil.copyfileobj(f_in, f_out)
 
-
-def find_top_level_names(json_file: str) -> Generator[str, None, None]:
-    """
-    Find the topmost item names by way of streaming a json
-    file through ijson.
-    """
-    with open(json_file, "r") as f:
-        parser = ijson.parse(f)
-        depth = 0
-        for prefix, event, value in parser:
-            if event == "start_map":
-                depth += 1
-            elif event == "end_map":
-                depth -= 1
-            elif event == "map_key" and depth == 1:
-                yield value
-
-
 # show the top level object names for json file
 top_level_names = list(find_top_level_names(target_extracted_data))
 print(top_level_names)
-
-
-def count_items_under_top_level_name(json_file: str, top_level_name: str):
-    """
-    Count items under a top level object name
-    """
-    count = 0
-    with open(json_file, "rb") as f:
-        parser = ijson.items(f, f"{top_level_name}.item")
-        for item in parser:
-            count += 1
-    return count
-
 
 # count the number of items under each top level name
 top_level_name_item_counts = {
@@ -122,29 +81,6 @@ metadata_top_level_names = [
     if count == 0
 ]
 metadata_top_level_names
-
-
-def parse_items_by_topmost_item_name(
-    json_file: str, topmost_item_name: str, chunk_size: int, limit: int = 0
-) -> Generator[List[Dict[str, Any]], None, None]:
-    """
-    Parse items using a topmost object name.
-    """
-    with open(json_file, "r") as f:
-        objects = ijson.items(f, f"{topmost_item_name}.item")
-        chunk = []
-        limit_count = 0
-        for item in objects:
-            if limit == 0 or limit_count < limit:
-                chunk.append(item)
-                if len(chunk) == chunk_size:
-                    yield chunk
-                    limit_count += 1
-                    chunk = []
-        # Yield the last chunk if there are remaining elements
-        if chunk:
-            yield chunk
-
 
 # build a sample of data using limited number of items
 sample_items_dict = {}

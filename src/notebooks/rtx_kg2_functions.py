@@ -199,3 +199,61 @@ def drop_table_if_exists(kz_conn: kuzu.connection.Connection, table_name: str):
     except Exception as e:
         print(e)
         print("Warning: no need to drop table.")
+
+
+def gather_table_names_from_parquet_path(
+    parquet_path: str,
+    column_with_table_name: str = "id",
+):
+    # return distinct table types as set comprehension
+    return set(
+        # create a parquet dataset and read a single column as an array
+        parquet.ParquetDataset(parquet_path)
+        .read(columns=[column_with_table_name])[column_with_table_name]
+        .to_pylist()
+    )
+
+
+def kz_execute_with_retries(
+    kz_conn: kuzu.connection.Connection, kz_stmt: str, retry_count: int = 5
+):
+    """
+    Retry running a kuzu execution up to retry_count number of times.
+    """
+
+    while retry_count > 1:
+
+        try:
+            kz_conn.execute(kz_stmt)
+            break
+        except RuntimeError as runexc:
+            # catch previous copy work and immediately move on
+            if (
+                str(runexc)
+                == "Copy exception: COPY commands can only be executed once on a table."
+            ):
+                print(runexc)
+                break
+            elif "Unable to find primary key value" in str(runexc):
+                print(f"Retrying after primary key exception: {runexc}")
+                # wait a half second before attempting again
+                time.sleep(0.5)
+                retry_count -= 1
+            else:
+                raise
+
+
+def gather_table_names_from_parquet_path(
+    parquet_path: str,
+    column_with_table_name: str = "id",
+):
+    with duckdb.connect() as ddb:
+        return [
+            element[0]
+            for element in ddb.execute(
+                f"""
+            SELECT DISTINCT {column_with_table_name}
+            FROM read_parquet('{parquet_path}')
+            """
+            ).fetchall()
+        ]

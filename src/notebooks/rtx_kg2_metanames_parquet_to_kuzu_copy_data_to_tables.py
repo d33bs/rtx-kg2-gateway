@@ -40,6 +40,7 @@ from rtx_kg2_functions import (
     drop_table_if_exists,
     find_top_level_names,
     generate_cypher_table_create_stmt_from_parquet_file,
+    kz_execute_with_retries,
     parse_items_by_topmost_item_name,
     parse_metadata_by_object_name,
 )
@@ -71,35 +72,6 @@ print(f"Kuzu dir: {kuzu_dir}")
 # init a Kuzu database and connection
 db = kuzu.Database(f"{kuzu_dir}")
 kz_conn = kuzu.Connection(db)
-
-
-def kz_execute_with_retries(
-    kz_conn: kuzu.connection.Connection, kz_stmt: str, retry_count: int = 5
-):
-    """
-    Retry running a kuzu execution up to retry_count number of times.
-    """
-
-    while retry_count > 1:
-
-        try:
-            kz_conn.execute(kz_stmt)
-            break
-        except RuntimeError as runexc:
-            # catch previous copy work and immediately move on
-            if (
-                str(runexc)
-                == "Copy exception: COPY commands can only be executed once on a table."
-            ):
-                print(runexc)
-                break
-            elif "Unable to find primary key value" in str(runexc):
-                print(f"Retrying after primary key exception: {runexc}")
-                # wait a half second before attempting again
-                time.sleep(0.5)
-                retry_count -= 1
-            else:
-                raise
 
 
 # note: we provide specific ordering here to ensure nodes are created before edges
