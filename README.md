@@ -39,3 +39,11 @@ Existing tasks:
 
 - `notebook_sample_data_generation`: generates a sample parquet dataset and adds to a kuzu database.
 - `notebook_full_data_generation`: generates full dataset and adds to a kuzu database.
+- `notebook_full_data_generation_with_metanames`: generates full dataset with metanames specificity and adds to a kuzu database in similar fashion.
+
+> ⚠ Suggested hardware resources:
+> Kuzu data ingest may require memory and storage beyond that of common laptop constraint.
+> A recent run `notebook_full_data_generation_with_metanames` involved the use of the following resources:
+> - Storage: ~40 GB (JSON, Parquet, Kuzu, and compressed files)
+> - Memory: ~32 GB (GCP VM [`e2-standard-16`](https://cloud.google.com/compute/docs/general-purpose-machines#e2-standard) was used for this purpose).
+> - CPU: 4 vCPU (see VM note above).
