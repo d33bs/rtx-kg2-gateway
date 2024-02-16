@@ -105,4 +105,11 @@ references:
       - family-names: Salihoğlu
         given-names: Semih
     date-released: 2022-11
-
+  - title:  DuckDB
+    type: software
+    url: https://github.com/duckdb/duckdb
+    authors: 
+      - family-names: Raasveldt
+        given-names: Mark
+      - family-names: Muehleisen
+        given-names: Hannes

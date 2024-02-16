@@ -13,6 +13,8 @@
 # ---
 
 # # Example Cypher Read of RTX-KG2 with Kuzu
+#
+# Related example found online at: [https://colab.research.google.com/drive/1XGZf2xhFwvNOFCXVCi8pAPvpu0NOMmzi](https://colab.research.google.com/drive/1XGZf2xhFwvNOFCXVCi8pAPvpu0NOMmzi)
 
 # +
 import os
