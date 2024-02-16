@@ -44,6 +44,7 @@ Existing tasks:
 > ⚠ Suggested hardware resources:
 > Kuzu data ingest may require memory and storage beyond that of common laptop constraint.
 > A recent run `notebook_full_data_generation_with_metanames` involved the use of the following resources:
+>
 > - Storage: ~40 GB (JSON, Parquet, Kuzu, and compressed files)
 > - Memory: ~32 GB (GCP VM [`e2-standard-16`](https://cloud.google.com/compute/docs/general-purpose-machines#e2-standard) was used for this purpose).
 > - CPU: 4 vCPU (see VM note above).
