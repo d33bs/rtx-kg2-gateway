@@ -48,3 +48,7 @@ Existing tasks:
 > - Storage: ~40 GB (JSON, Parquet, Kuzu, and compressed files)
 > - Memory: ~32 GB (GCP VM [`e2-standard-16`](https://cloud.google.com/compute/docs/general-purpose-machines#e2-standard) was used for this purpose).
 > - CPU: 4 vCPU (see VM note above).
+
+## Citation and Acknowledgements
+
+Data used by this repo includes [RTX-KG2](https://github.com/RTXteam/RTX-KG2) which was published at the [NCATS Biomedical Data Translator repository](https://github.com/ncats/translator-lfs-artifacts). Special thanks goes to those mentioned in the [RTX-KG2 credits](https://github.com/RTXteam/RTX-KG2?tab=readme-ov-file#credits). Further data acknowledgments may be found within the [data sources documentation](https://github.com/RTXteam/RTX-KG2?tab=readme-ov-file#what-data-sources-are-used-in-kg2).
